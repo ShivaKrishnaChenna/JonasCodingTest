@@ -22,14 +22,25 @@ namespace DataAccessLayer.Database
 		{
 			try
 			{
-				DatabaseInstance.Add(Tuple.Create(data.SiteId, data.CompanyCode), data);
-				return true;
+				var key = Tuple.Create(data.SiteId, data.CompanyCode); // Adjust as needed for your key properties
+				if (DatabaseInstance.ContainsKey(key))
+				{
+					// If you want to allow updates, uncomment the line below:
+					// DatabaseInstance[key] = data; 
+					return false; // Indicates that the data was not added because it already exists
+				}
+
+				DatabaseInstance.Add(key, data);
+				return true; // Indicates successful insertion
 			}
-			catch
+			catch (Exception ex)
 			{
-				return false;
+				// Log the exception (consider using a logger)
+				Console.WriteLine($"Error inserting data: {ex.Message}");
+				return false; // Indicates an error occurred
 			}
 		}
+
 
 		public bool Update(T data)
 		{

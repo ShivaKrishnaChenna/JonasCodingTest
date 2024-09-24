@@ -20,6 +20,7 @@ namespace WebApi.App_Start
     using Ninject.Web.Common;
     using Ninject.Web.Common.WebHost;
     using Ninject.WebApi.DependencyResolver;
+    using Serilog;
 
     public static class NinjectWebCommon 
     {
@@ -28,8 +29,17 @@ namespace WebApi.App_Start
         /// <summary>
         /// Starts the application.
         /// </summary>
-        public static void Start() 
+        public static void Start()
         {
+            
+            // Configure Serilog here
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.File("logs/logfile.txt", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
             DynamicModuleUtility.RegisterModule(typeof(OnePerRequestHttpModule));
             DynamicModuleUtility.RegisterModule(typeof(NinjectHttpModule));
             bootstrapper.Initialize(CreateKernel);
@@ -82,9 +92,17 @@ namespace WebApi.App_Start
                 });
                 return config.CreateMapper();
             }).InSingletonScope();
+
+            kernel.Bind<Serilog.ILogger>().ToMethod(context => Log.Logger).InSingletonScope();
+
             kernel.Bind<ICompanyService>().To<CompanyService>();
             kernel.Bind<ICompanyRepository>().To<CompanyRepository>();
-            kernel.Bind(typeof(IDbWrapper<>)).To(typeof(InMemoryDatabase<>));
+
+            kernel.Bind<IEmployeeService>().To<EmployeeService>();
+            kernel.Bind<IEmployeeRepository>().To<EmployeeRepository>();
+
+            kernel.Bind(typeof(IDbWrapper<>)).To(typeof(InMemoryDatabase<>)).InSingletonScope();
+
         }
     }
 }
